@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '9.4.2'
+}
+
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly libs.burpMontayaApi
+    implementation libs.protobufJava
+    implementation libs.protobufJavaUtil
+
+    testImplementation libs.burpMontayaApi
+    testImplementation libs.junitJupiter
+    testRuntimeOnly libs.junitPlatformLauncher
+}
+
+java {
+    toolchain {
+        // Use Java 17 for compilation (Shadow 8.1.1 can't process Java 21 bytecode)
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    // Relocate protobuf classes to avoid conflicts with Burp's bundled version
+    relocate 'com.google.protobuf', 'doyensec.protospector.shaded.com.google.protobuf'
+}
+
+jar {
+    enabled = false
+    dependsOn shadowJar
+}
+
+test {
+    useJUnitPlatform()
+}

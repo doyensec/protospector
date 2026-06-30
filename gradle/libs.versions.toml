@@ -1,0 +1,6 @@
+[libraries]
+burpMontayaApi = { module = "net.portswigger.burp.extensions:montoya-api", version = "2025.2" }
+junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version = "5.11.4" }
+protobufJava = { module = "com.google.protobuf:protobuf-java", version = "3.25.3" }
+protobufJavaUtil = { module = "com.google.protobuf:protobuf-java-util", version = "3.25.3" }
+junitPlatformLauncher = { module = "org.junit.platform:junit-platform-launcher", version = "1.11.4" }

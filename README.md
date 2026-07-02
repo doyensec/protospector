@@ -42,12 +42,14 @@ For blackbox testing scenarios, the **ProtoSpector** tab includes an interactive
 
 ## 📦 Installation
 
-1. Download the extension deliverable from GitHub Releases
+1. Download the extension deliverable from the "GitHub Releases" page
 2. Open Burp Suite
 3. Go to **Extensions** → **Installed** → **Add**
 4. Select **Extension type**: Java
 5. Click **Select file** and choose the downloaded `.jar` file
 6. Click **Next** and verify the extension loads without errors
+
+ℹ️ We've also submitted the extension to the [Portswigger's BApp Store](https://portswigger.net/bappstore). Currently waiting on their approval process.
 
 ## ⚙️ Compiling .pb Files
 

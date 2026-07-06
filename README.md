@@ -1,4 +1,6 @@
 # ProtoSpector - Burp Extension for Working with Protocol Buffers (protobuf) and gRPC services.
+<img width="2816" height="1536" alt="ProtoSpector_logo" src="https://github.com/user-attachments/assets/8f2642db-1beb-4a62-acba-559542d909de" />
+
 ## 🚀 Introduction
 
 ProtoSpector simplifies Protobuf security testing in Burp Suite. The extension allows you to effortlessly decode and encode Protobuf messages using either a whitebox approach (with proto schemas) or a blackbox approach (directly working on raw Protobuf data).

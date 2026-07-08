@@ -30,7 +30,7 @@ jobs:
       - name: Prepare release asset
         run: |
           version="${GITHUB_REF_NAME#v}"
-          cp app/build/libs/app.jar "protospector-${version}.jar"
+          cp build/libs/protospector.jar "protospector-${version}.jar"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

@@ -8,6 +8,13 @@ repositories {
     mavenCentral()
 }
 
+java {
+    toolchain {
+        // Use Java 17 for compilation (Shadow can't process Java 21 bytecode)
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
 dependencies {
     compileOnly libs.burpMontayaApi
     implementation libs.protobufJava
@@ -18,14 +25,8 @@ dependencies {
     testRuntimeOnly libs.junitPlatformLauncher
 }
 
-java {
-    toolchain {
-        // Use Java 17 for compilation (Shadow 8.1.1 can't process Java 21 bytecode)
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
 shadowJar {
+    archiveBaseName.set('protospector')
     archiveClassifier.set('')
     // Relocate protobuf classes to avoid conflicts with Burp's bundled version
     relocate 'com.google.protobuf', 'doyensec.protospector.shaded.com.google.protobuf'
@@ -33,6 +34,10 @@ shadowJar {
 
 jar {
     enabled = false
+    dependsOn shadowJar
+}
+
+build {
     dependsOn shadowJar
 }
 

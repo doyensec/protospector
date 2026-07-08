@@ -80,7 +80,7 @@ The extension uses the Shadow plugin to bundle all dependencies (including proto
 
 ```
 
-The built JAR will be located at: `app/build/libs/app.jar`
+The built JAR will be located at: `build/libs/protospector.jar`
 
 ### Build Details
 

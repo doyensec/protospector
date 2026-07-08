@@ -26,11 +26,11 @@ jobs:
           cache: gradle
 
       - name: Build and test
-        run: ./gradlew check shadowJar
+        run: ./gradlew build
 
       - name: Upload extension JAR
         uses: actions/upload-artifact@v4
         with:
           name: protospector-extension
-          path: app/build/libs/app.jar
+          path: build/libs/protospector.jar
           if-no-files-found: error

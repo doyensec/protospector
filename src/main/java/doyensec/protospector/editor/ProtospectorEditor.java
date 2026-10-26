@@ -1,16 +1,20 @@
 package doyensec.protospector.editor;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.HierarchyEvent;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
@@ -33,14 +37,15 @@ import doyensec.protospector.grpc.SerializerFactory;
 import doyensec.protospector.protobuf.ProtoMessageHelper;
 import doyensec.protospector.protobuf.EditableMethodMap.MethodMap;
 import doyensec.protospector.ui.UIModel;
-import doyensec.protospector.ui.UIUtils;
 
 public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
 
     protected final RawEditor burpEditor;
     protected boolean readOnly;
 
+    private final MontoyaApi api;
     private final JPanel rootPanel;
+    private final JTextArea errorArea;
     private final ProtospectorEditorPanel editorPanel;
     private final ProtospectorEditorSchemaTable schemaTable;
     private final JSplitPane splitPane;
@@ -64,6 +69,7 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
     private boolean programmaticDividerChange;
 
     ProtospectorEditor(MontoyaApi api, EditorCreationContext creationContext) {
+        this.api = api;
         readOnly = creationContext.editorMode() == EditorMode.READ_ONLY;
         burpEditor = readOnly
                 ? api.userInterface().createRawEditor(EditorOptions.READ_ONLY)
@@ -113,8 +119,21 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         toolbar.add(typesPreviewToggleButton);
 
+        errorArea = new JTextArea();
+        errorArea.setEditable(false);
+        errorArea.setLineWrap(true);
+        errorArea.setWrapStyleWord(true);
+        errorArea.setOpaque(false);
+        errorArea.setForeground(new Color(0xD3, 0x2F, 0x2F));
+        errorArea.setBorder(BorderFactory.createEmptyBorder(0, 8, 5, 8));
+        errorArea.setVisible(false);
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(toolbar, BorderLayout.NORTH);
+        header.add(errorArea, BorderLayout.SOUTH);
+
         rootPanel = new JPanel(new BorderLayout());
-        rootPanel.add(toolbar, BorderLayout.NORTH);
+        rootPanel.add(header, BorderLayout.NORTH);
         rootPanel.add(splitPane, BorderLayout.CENTER);
 
         applyTypesPreviewVisibility();
@@ -143,6 +162,7 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
         currentIsRequest = isRequest;
         burpEditor.setContents(ByteArray.byteArrayOfLength(0));
         schemaTable.setSchema(null, null);
+        clearError();
         new SwingWorker<EditorLoadResult, Void>() {
             @Override
             protected EditorLoadResult doInBackground() throws Exception {
@@ -161,7 +181,7 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
                 try {
                     result = get();
                 } catch (Exception e) {
-                    UIUtils.errorAlert("Failed to load editor: " + e.getMessage());
+                    showError("Failed to load message: " + describeError(e));
                     return;
                 }
                 burpEditor.setContents(result.deserialized);
@@ -188,6 +208,35 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
     @Override
     public boolean isModified() {
         return burpEditor.isModified();
+    }
+
+    private void showError(String message) {
+        api.logging().logToError(message);
+        errorArea.setText(message);
+        errorArea.setVisible(true);
+        rootPanel.revalidate();
+    }
+
+    private void clearError() {
+        if (errorArea.isVisible()) {
+            errorArea.setText("");
+            errorArea.setVisible(false);
+            rootPanel.revalidate();
+        }
+    }
+
+    private static String describeError(Throwable e) {
+        Throwable current = e instanceof ExecutionException && e.getCause() != null ? e.getCause() : e;
+        StringBuilder description = new StringBuilder();
+        while (current != null) {
+            String message = current.getMessage() != null ? current.getMessage() : current.getClass().getSimpleName();
+            if (description.length() > 0) {
+                description.append(": ");
+            }
+            description.append(message);
+            current = current.getCause();
+        }
+        return description.toString();
     }
 
     private void refreshCurrentMessage() {

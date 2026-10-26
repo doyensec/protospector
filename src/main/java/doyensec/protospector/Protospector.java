@@ -3,12 +3,14 @@ package doyensec.protospector;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.UnknownFieldSet;
 
 import burp.api.montoya.core.ByteArray;
 import doyensec.protospector.grpc.blackbox.ProtoDescriptorBuilder;
 import doyensec.protospector.grpc.Serializer;
 import doyensec.protospector.grpc.SerializerException;
 import doyensec.protospector.grpc.SerializerFactory;
+import doyensec.protospector.grpc.TypeDescriptorMismatchException;
 import doyensec.protospector.protobuf.MethodNotFoundException;
 import doyensec.protospector.protobuf.ProtoMessageHelper;
 import doyensec.protospector.protobuf.EditableMethodMap.MethodMap;
@@ -20,10 +22,12 @@ public class Protospector {
             throws SerializerException {
         Serializer serializer = SerializerFactory.getSerializer(contentType);
         Descriptor typeDescriptor = null;
+        boolean isSavedType = true;
         MethodMap editableMethodMap = UIModel.getInstance().getEditableMethodMap();
         try {
             typeDescriptor = editableMethodMap.getTypeDescriptor(path, isRequest);
         } catch (MethodNotFoundException | DescriptorValidationException e) {
+            isSavedType = false;
             // Infer types and create a typeDescriptor for this message
             try {
                 ByteArray protobufBytes = serializer.getProtoByteArray(body);
@@ -38,7 +42,24 @@ public class Protospector {
                 throw new SerializerException("Couldn't deserialize message", ex);
             }
         }
-        return serializer.deserialize(body, typeDescriptor);
+        try {
+            return serializer.deserialize(body, typeDescriptor);
+        } catch (SerializerException e) {
+            if (isSavedType && isValidProtobuf(serializer, body)) {
+                throw new TypeDescriptorMismatchException("The saved type can't decode this message", e);
+            }
+            throw e;
+        }
+    }
+
+    // A valid protobuf wire that the saved type rejects means the saved type is wrong, not the message
+    private static boolean isValidProtobuf(Serializer serializer, ByteArray body) {
+        try {
+            UnknownFieldSet.parseFrom(serializer.getProtoByteArray(body).getBytes());
+            return true;
+        } catch (SerializerException | InvalidProtocolBufferException e) {
+            return false;
+        }
     }
 
     public static ByteArray serializeMessage(String path, ByteArray body, String contentType, boolean isRequest)

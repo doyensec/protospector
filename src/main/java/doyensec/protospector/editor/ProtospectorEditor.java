@@ -34,6 +34,7 @@ import burp.api.montoya.ui.editor.extension.ExtensionProvidedEditor;
 import doyensec.protospector.Protospector;
 import doyensec.protospector.grpc.Serializer;
 import doyensec.protospector.grpc.SerializerFactory;
+import doyensec.protospector.grpc.TypeDescriptorMismatchException;
 import doyensec.protospector.protobuf.ProtoMessageHelper;
 import doyensec.protospector.protobuf.EditableMethodMap.MethodMap;
 import doyensec.protospector.ui.UIModel;
@@ -45,7 +46,9 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
 
     private final MontoyaApi api;
     private final JPanel rootPanel;
+    private final JPanel errorPanel;
     private final JTextArea errorArea;
+    private final JButton resetTypeButton;
     private final ProtospectorEditorPanel editorPanel;
     private final ProtospectorEditorSchemaTable schemaTable;
     private final JSplitPane splitPane;
@@ -126,11 +129,20 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
         errorArea.setOpaque(false);
         errorArea.setForeground(new Color(0xD3, 0x2F, 0x2F));
         errorArea.setBorder(BorderFactory.createEmptyBorder(0, 8, 5, 8));
-        errorArea.setVisible(false);
+
+        resetTypeButton = new JButton("Delete saved type and re-guess");
+        resetTypeButton.addActionListener(e -> resetSavedType());
+        JPanel resetTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        resetTypePanel.add(resetTypeButton);
+
+        errorPanel = new JPanel(new BorderLayout());
+        errorPanel.add(errorArea, BorderLayout.CENTER);
+        errorPanel.add(resetTypePanel, BorderLayout.SOUTH);
+        errorPanel.setVisible(false);
 
         JPanel header = new JPanel(new BorderLayout());
         header.add(toolbar, BorderLayout.NORTH);
-        header.add(errorArea, BorderLayout.SOUTH);
+        header.add(errorPanel, BorderLayout.SOUTH);
 
         rootPanel = new JPanel(new BorderLayout());
         rootPanel.add(header, BorderLayout.NORTH);
@@ -181,7 +193,15 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
                 try {
                     result = get();
                 } catch (Exception e) {
-                    showError("Failed to load message: " + describeError(e));
+                    if (e.getCause() instanceof TypeDescriptorMismatchException) {
+                        String side = isRequest ? "request" : "response";
+                        showError("The saved " + side + " type for " + path + " can't decode this message ("
+                                + rootCause(e).getMessage() + "). It was probably guessed from an earlier message"
+                                + " with a different shape. Deleting it guesses a new type from this message;"
+                                + " field names and types saved for this " + side + " will be lost.", true);
+                    } else {
+                        showError("Failed to load message: " + describeError(e), false);
+                    }
                     return;
                 }
                 burpEditor.setContents(result.deserialized);
@@ -210,19 +230,34 @@ public abstract class ProtospectorEditor implements ExtensionProvidedEditor {
         return burpEditor.isModified();
     }
 
-    private void showError(String message) {
+    private void showError(String message, boolean offerTypeReset) {
         api.logging().logToError(message);
         errorArea.setText(message);
-        errorArea.setVisible(true);
+        resetTypeButton.setVisible(offerTypeReset);
+        errorPanel.setVisible(true);
         rootPanel.revalidate();
     }
 
     private void clearError() {
-        if (errorArea.isVisible()) {
+        if (errorPanel.isVisible()) {
             errorArea.setText("");
-            errorArea.setVisible(false);
+            errorPanel.setVisible(false);
             rootPanel.revalidate();
         }
+    }
+
+    private void resetSavedType() {
+        UIModel.getInstance().getEditableMethodMap().removeTypeDescriptor(currentPath, currentIsRequest);
+        // With no saved type, loading infers a new one from the current message
+        refreshCurrentMessage();
+    }
+
+    private static Throwable rootCause(Throwable e) {
+        Throwable current = e;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private static String describeError(Throwable e) {

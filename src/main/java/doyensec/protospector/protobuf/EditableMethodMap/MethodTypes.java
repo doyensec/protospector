@@ -63,6 +63,14 @@ public class MethodTypes {
         outputTypeDescriptor = new EditableTypeDescriptor(descriptor);
     }
 
+    synchronized void removeTypeDescriptor(boolean isInput) {
+        if (isInput) {
+            inputTypeDescriptor = null;
+        } else {
+            outputTypeDescriptor = null;
+        }
+    }
+
     synchronized void setTypeDescriptorSignature(String signature, boolean isInput)
             throws MethodNotFoundException, ParseException, DescriptorValidationException {
         if (isInput) {

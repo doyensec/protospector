@@ -127,6 +127,16 @@ public class MethodMap {
         }
     }
 
+    public void removeTypeDescriptor(String path, boolean isInput) {
+        MethodTypes methodTypes = internalMap.get(path);
+        if (methodTypes != null) {
+            methodTypes.removeTypeDescriptor(isInput);
+        }
+        this.persistedObject = getOrCreatePersistedObject();
+        persistedObject.deleteString(path + (isInput ? INPUT_SUFFIX : OUTPUT_SUFFIX));
+        this.persistence.extensionData().setChildObject(PERSISTED_METHOD_MAP_KEY, this.persistedObject);
+    }
+
     public void updateFieldName(String path, List<Integer> containingTypeIndexPath, int fieldIndex, String newName,
             boolean isInput) throws MethodNotFoundException, DescriptorValidationException {
         getMethodTypesByPath(path).updateFieldName(containingTypeIndexPath, fieldIndex, newName, isInput);

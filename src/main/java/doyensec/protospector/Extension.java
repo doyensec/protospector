@@ -5,6 +5,7 @@ import burp.api.montoya.MontoyaApi;
 import doyensec.protospector.editor.RequestEditor;
 import doyensec.protospector.editor.ResponseEditor;
 import doyensec.protospector.grpc.GrpcTextJsonSerializer;
+import doyensec.protospector.grpc.ProtobufJsonSerializer;
 import doyensec.protospector.ui.ProtospectorTab;
 import doyensec.protospector.ui.UIModel;
 import doyensec.protospector.protobuf.EditableMethodMap.MethodMap;
@@ -46,5 +47,6 @@ public class Extension implements BurpExtension {
             // UIModel not initialized
         }
         GrpcTextJsonSerializer.extensionUnload();
+        ProtobufJsonSerializer.extensionUnload();
     }
 }

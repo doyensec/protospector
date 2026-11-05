@@ -2,9 +2,12 @@ package doyensec.protospector.editor;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -15,6 +18,7 @@ import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
@@ -186,7 +190,12 @@ class ProtospectorEditorSchemaTable extends JScrollPane {
             return options;
         }
 
+        // Cached per row: getValueAt runs on every repaint
         private String getPreview(SchemaFieldRow row, FieldDescriptor.Type type) {
+            return row.previews.computeIfAbsent(type, unused -> computePreview(row, type));
+        }
+
+        private String computePreview(SchemaFieldRow row, FieldDescriptor.Type type) {
             try {
                 Object preview = new FieldTypePreviewer(row.field, row.parentMessage).previewFieldType(type);
                 return formatPreview(preview);
@@ -196,7 +205,10 @@ class ProtospectorEditorSchemaTable extends JScrollPane {
         }
 
         private String formatPreview(Object preview) {
-            String previewText = String.valueOf(preview);
+            // Base64, as in the JSON editor; ByteString.toString() includes the object's identity hash
+            String previewText = preview instanceof ByteString
+                    ? Base64.getEncoder().encodeToString(((ByteString) preview).toByteArray())
+                    : String.valueOf(preview);
             if (previewText.length() > 80) {
                 return previewText.substring(0, 77) + "...";
             }
@@ -230,6 +242,7 @@ class ProtospectorEditorSchemaTable extends JScrollPane {
         private final Message parentMessage;
         private final int depth;
         private final List<Integer> relativeIndexPath;
+        private final Map<FieldDescriptor.Type, String> previews = new EnumMap<>(FieldDescriptor.Type.class);
 
         SchemaFieldRow(FieldDescriptor field, Message parentMessage, int depth, List<Integer> relativeIndexPath) {
             this.field = field;

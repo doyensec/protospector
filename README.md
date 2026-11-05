@@ -11,7 +11,7 @@ ProtoSpector simplifies Protobuf security testing in Burp Suite. The extension a
 
 The extension automatically detects Protobuf content types and adds a **ProtoSpector** tab to the request view.
 
-**As of now only `application/grpc-web+proto` and `application/grpc-web-text` content types are supported, more are underway!**
+**As of now only `application/grpc-web+proto`, `application/grpc-web-text` and raw protobuf (`application/x-protobuf`, `application/protobuf`, `application/x-google-protobuf`, `application/vnd.google.protobuf`) content types are supported, more are underway!**
 
 It supports two testing approaches:
 
